@@ -66,6 +66,14 @@ def reset(db_name = None):
     print(f"Database {db_name} has been reseted")
     conn.close()
 
+def get_final_score(score, level, bonus, score_min):
+    if level == "easy":
+        bonus = 0
+    elif level == "hard":
+        bonus *= 2
+    score += bonus
+    return int(score >= score_min) * score
+
 
 if __name__ == "__main__":
 
@@ -91,7 +99,8 @@ if __name__ == "__main__":
         db.execute("""
             CREATE TABLE obstacle(
                 id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL, level VARCHAR(20),
+                name VARCHAR(255) NOT NULL,
+                level VARCHAR(20),
                 score_mini INT,
                 bonus INT)
         """)
@@ -153,24 +162,28 @@ if __name__ == "__main__":
         SELECT
             CONCAT('[',s.reg_number,'] ', s.first_name, ' ', s.last_name),
             CONCAT('[',i.reg_number,'] ', i.first_name, ' ', i.last_name),
-            o.name, t.score, t.duration, t.date_test
+            o.name, o.level, o.bonus, o.score_mini, t.score, t.duration, t.date_test
         FROM test as t
         INNER JOIN soldier AS s ON t.soldier_id = s.reg_number
         LEFT JOIN (SELECT * FROM soldier WHERE is_instructor = 1) AS i ON t.instructor_id = i.reg_number
         LEFT JOIN obstacle AS o ON t.obstacle_id = o.id
         """
 
+
         print("TEST WITH JOINTURES")
 
         def print_tests():
             x = PrettyTable()
-            x.field_names = ["Soldat", "Instructeur", "Obstacle", "Score", "Temps", "Date"]
+            x.field_names = ["Soldat", "Instructeur", "Obstacle", "Level", "Bonus", "Score Mini", "Score", "Temps", "Date", "SCORE FINAL"]
             for test in db.query(query):
+                
                 # print(test)
-                x.add_row(test)
+                final_score = get_final_score(test[6], test[3], test[4], test[5]) or "ECHEC"
+                x.add_row(test + (final_score, ))
             print(x)
         
         print_tests()
+        
         
 
 
